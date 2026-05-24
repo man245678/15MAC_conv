@@ -1,3 +1,44 @@
+`define DECL_WIN(A0,A1,A2,A3,A4) \
+    reg signed [BITWIDTH-1:0] A0 [0:FEATURE_WIDTH-1]; \
+    reg signed [BITWIDTH-1:0] A1 [0:FEATURE_WIDTH-1]; \
+    reg signed [BITWIDTH-1:0] A2 [0:FEATURE_WIDTH-1]; \
+    reg signed [BITWIDTH-1:0] A3 [0:FEATURE_WIDTH-1]; \
+    reg signed [BITWIDTH-1:0] A4 [0:FEATURE_WIDTH-1]
+
+`define STORE_WIN(A0,A1,A2,A3,A4) begin \
+    case(load_col_mod) \
+        2'd0: begin \
+            if(load_fx < FEATURE_WIDTH) A0[load_fx] <= IMAGE_RAM_DIN; \
+            if(load_fx != 0) A3[load_fx - 1] <= IMAGE_RAM_DIN; \
+        end \
+        2'd1: begin \
+            if(load_fx < FEATURE_WIDTH) A1[load_fx] <= IMAGE_RAM_DIN; \
+            if(load_fx != 0) A4[load_fx - 1] <= IMAGE_RAM_DIN; \
+        end \
+        default: begin \
+            if(load_fx < FEATURE_WIDTH) A2[load_fx] <= IMAGE_RAM_DIN; \
+        end \
+    endcase \
+end
+
+`define CAPTURE_SLOT(A00,A01,A02,A03,A04,A10,A11,A12,A13,A14,A20,A21,A22,A23,A24) begin \
+    ifmap_pipe1  <= A00[cur_compute_x]; \
+    ifmap_pipe2  <= A01[cur_compute_x]; \
+    ifmap_pipe3  <= A02[cur_compute_x]; \
+    ifmap_pipe4  <= A03[cur_compute_x]; \
+    ifmap_pipe5  <= A04[cur_compute_x]; \
+    ifmap_pipe6  <= A10[cur_compute_x]; \
+    ifmap_pipe7  <= A11[cur_compute_x]; \
+    ifmap_pipe8  <= A12[cur_compute_x]; \
+    ifmap_pipe9  <= A13[cur_compute_x]; \
+    ifmap_pipe10 <= A14[cur_compute_x]; \
+    ifmap_pipe11 <= A20[cur_compute_x]; \
+    ifmap_pipe12 <= A21[cur_compute_x]; \
+    ifmap_pipe13 <= A22[cur_compute_x]; \
+    ifmap_pipe14 <= A23[cur_compute_x]; \
+    ifmap_pipe15 <= A24[cur_compute_x]; \
+end
+
 module Convolver
 #(
     parameter ADDR_WIDTH    = 15,
@@ -36,26 +77,72 @@ module Convolver
     localparam WAIT_IMAGE    = 4'd5;
     localparam STORE_IMAGE   = 4'd6;
     localparam CLEAR_PSUM    = 4'd7;
-    localparam COMPUTE       = 4'd8;
-    localparam WRITE_FEATURE = 4'd9;
-    localparam DONE          = 4'd10;
+    localparam READ_SLOT     = 4'd8;
+    localparam COMPUTE       = 4'd9;
+    localparam ACCUMULATE    = 4'd10;
+    localparam WRITE_FEATURE = 4'd11;
+    localparam DONE          = 4'd12;
 
     reg [3:0] cur_state, next_state;
-
     reg [6:0] cur_filter_idx, next_filter_idx;
     reg [6:0] cur_load_row, next_load_row;
     reg [8:0] cur_load_idx, next_load_idx;
+    reg [5:0] cur_load_fx, next_load_fx;
+    reg [1:0] cur_load_col_mod, next_load_col_mod;
     reg [4:0] cur_feature_y, next_feature_y;
     reg [4:0] cur_compute_x, next_compute_x;
     reg [2:0] cur_kernel_row, next_kernel_row;
     reg [4:0] cur_clear_idx, next_clear_idx;
     reg [4:0] cur_write_idx, next_write_idx;
 
-    reg signed [BITWIDTH-1:0] row_buf0 [0:3*IMAGE_WIDTH-1];
-    reg signed [BITWIDTH-1:0] row_buf1 [0:3*IMAGE_WIDTH-1];
-    reg signed [BITWIDTH-1:0] row_buf2 [0:3*IMAGE_WIDTH-1];
-    reg signed [BITWIDTH-1:0] row_buf3 [0:3*IMAGE_WIDTH-1];
-    reg signed [BITWIDTH-1:0] row_buf4 [0:3*IMAGE_WIDTH-1];
+    reg signed [BITWIDTH-1:0] ifmap_pipe1;
+    reg signed [BITWIDTH-1:0] ifmap_pipe2;
+    reg signed [BITWIDTH-1:0] ifmap_pipe3;
+    reg signed [BITWIDTH-1:0] ifmap_pipe4;
+    reg signed [BITWIDTH-1:0] ifmap_pipe5;
+    reg signed [BITWIDTH-1:0] ifmap_pipe6;
+    reg signed [BITWIDTH-1:0] ifmap_pipe7;
+    reg signed [BITWIDTH-1:0] ifmap_pipe8;
+    reg signed [BITWIDTH-1:0] ifmap_pipe9;
+    reg signed [BITWIDTH-1:0] ifmap_pipe10;
+    reg signed [BITWIDTH-1:0] ifmap_pipe11;
+    reg signed [BITWIDTH-1:0] ifmap_pipe12;
+    reg signed [BITWIDTH-1:0] ifmap_pipe13;
+    reg signed [BITWIDTH-1:0] ifmap_pipe14;
+    reg signed [BITWIDTH-1:0] ifmap_pipe15;
+
+    reg signed [BITWIDTH-1:0] filter_pipe1;
+    reg signed [BITWIDTH-1:0] filter_pipe2;
+    reg signed [BITWIDTH-1:0] filter_pipe3;
+    reg signed [BITWIDTH-1:0] filter_pipe4;
+    reg signed [BITWIDTH-1:0] filter_pipe5;
+    reg signed [BITWIDTH-1:0] filter_pipe6;
+    reg signed [BITWIDTH-1:0] filter_pipe7;
+    reg signed [BITWIDTH-1:0] filter_pipe8;
+    reg signed [BITWIDTH-1:0] filter_pipe9;
+    reg signed [BITWIDTH-1:0] filter_pipe10;
+    reg signed [BITWIDTH-1:0] filter_pipe11;
+    reg signed [BITWIDTH-1:0] filter_pipe12;
+    reg signed [BITWIDTH-1:0] filter_pipe13;
+    reg signed [BITWIDTH-1:0] filter_pipe14;
+    reg signed [BITWIDTH-1:0] filter_pipe15;
+
+    `DECL_WIN(win0_ch0_0, win0_ch0_1, win0_ch0_2, win0_ch0_3, win0_ch0_4);
+    `DECL_WIN(win0_ch1_0, win0_ch1_1, win0_ch1_2, win0_ch1_3, win0_ch1_4);
+    `DECL_WIN(win0_ch2_0, win0_ch2_1, win0_ch2_2, win0_ch2_3, win0_ch2_4);
+    `DECL_WIN(win1_ch0_0, win1_ch0_1, win1_ch0_2, win1_ch0_3, win1_ch0_4);
+    `DECL_WIN(win1_ch1_0, win1_ch1_1, win1_ch1_2, win1_ch1_3, win1_ch1_4);
+    `DECL_WIN(win1_ch2_0, win1_ch2_1, win1_ch2_2, win1_ch2_3, win1_ch2_4);
+    `DECL_WIN(win2_ch0_0, win2_ch0_1, win2_ch0_2, win2_ch0_3, win2_ch0_4);
+    `DECL_WIN(win2_ch1_0, win2_ch1_1, win2_ch1_2, win2_ch1_3, win2_ch1_4);
+    `DECL_WIN(win2_ch2_0, win2_ch2_1, win2_ch2_2, win2_ch2_3, win2_ch2_4);
+    `DECL_WIN(win3_ch0_0, win3_ch0_1, win3_ch0_2, win3_ch0_3, win3_ch0_4);
+    `DECL_WIN(win3_ch1_0, win3_ch1_1, win3_ch1_2, win3_ch1_3, win3_ch1_4);
+    `DECL_WIN(win3_ch2_0, win3_ch2_1, win3_ch2_2, win3_ch2_3, win3_ch2_4);
+    `DECL_WIN(win4_ch0_0, win4_ch0_1, win4_ch0_2, win4_ch0_3, win4_ch0_4);
+    `DECL_WIN(win4_ch1_0, win4_ch1_1, win4_ch1_2, win4_ch1_3, win4_ch1_4);
+    `DECL_WIN(win4_ch2_0, win4_ch2_1, win4_ch2_2, win4_ch2_3, win4_ch2_4);
+
     reg signed [BITWIDTH-1:0] filter_buf [0:3*FILTER_WIDTH*FILTER_WIDTH-1];
     reg signed [2*BITWIDTH-1:0] psum [0:FEATURE_WIDTH-1];
 
@@ -65,61 +152,12 @@ module Convolver
                           ((cur_load_idx < 2*IMAGE_WIDTH) ?
                            (cur_load_idx - IMAGE_WIDTH) :
                            (cur_load_idx - 2*IMAGE_WIDTH));
+    wire [5:0] load_fx = cur_load_fx;
+    wire [1:0] load_col_mod = cur_load_col_mod;
     wire [2:0] load_slot = cur_load_row % 5;
-
     wire [6:0] active_abs_row = cur_feature_y * 3 + cur_kernel_row;
     wire [2:0] active_slot = active_abs_row % 5;
-    wire [6:0] base_col = cur_compute_x * 3;
-
-    wire [8:0] idx_ch0_col0 = base_col + 0;
-    wire [8:0] idx_ch0_col1 = base_col + 1;
-    wire [8:0] idx_ch0_col2 = base_col + 2;
-    wire [8:0] idx_ch0_col3 = base_col + 3;
-    wire [8:0] idx_ch0_col4 = base_col + 4;
-    wire [8:0] idx_ch1_col0 = IMAGE_WIDTH + base_col + 0;
-    wire [8:0] idx_ch1_col1 = IMAGE_WIDTH + base_col + 1;
-    wire [8:0] idx_ch1_col2 = IMAGE_WIDTH + base_col + 2;
-    wire [8:0] idx_ch1_col3 = IMAGE_WIDTH + base_col + 3;
-    wire [8:0] idx_ch1_col4 = IMAGE_WIDTH + base_col + 4;
-    wire [8:0] idx_ch2_col0 = 2*IMAGE_WIDTH + base_col + 0;
-    wire [8:0] idx_ch2_col1 = 2*IMAGE_WIDTH + base_col + 1;
-    wire [8:0] idx_ch2_col2 = 2*IMAGE_WIDTH + base_col + 2;
-    wire [8:0] idx_ch2_col3 = 2*IMAGE_WIDTH + base_col + 3;
-    wire [8:0] idx_ch2_col4 = 2*IMAGE_WIDTH + base_col + 4;
-
-    wire signed [BITWIDTH-1:0] ifmap1  = (active_slot == 0) ? row_buf0[idx_ch0_col0] : (active_slot == 1) ? row_buf1[idx_ch0_col0] : (active_slot == 2) ? row_buf2[idx_ch0_col0] : (active_slot == 3) ? row_buf3[idx_ch0_col0] : row_buf4[idx_ch0_col0];
-    wire signed [BITWIDTH-1:0] ifmap2  = (active_slot == 0) ? row_buf0[idx_ch0_col1] : (active_slot == 1) ? row_buf1[idx_ch0_col1] : (active_slot == 2) ? row_buf2[idx_ch0_col1] : (active_slot == 3) ? row_buf3[idx_ch0_col1] : row_buf4[idx_ch0_col1];
-    wire signed [BITWIDTH-1:0] ifmap3  = (active_slot == 0) ? row_buf0[idx_ch0_col2] : (active_slot == 1) ? row_buf1[idx_ch0_col2] : (active_slot == 2) ? row_buf2[idx_ch0_col2] : (active_slot == 3) ? row_buf3[idx_ch0_col2] : row_buf4[idx_ch0_col2];
-    wire signed [BITWIDTH-1:0] ifmap4  = (active_slot == 0) ? row_buf0[idx_ch0_col3] : (active_slot == 1) ? row_buf1[idx_ch0_col3] : (active_slot == 2) ? row_buf2[idx_ch0_col3] : (active_slot == 3) ? row_buf3[idx_ch0_col3] : row_buf4[idx_ch0_col3];
-    wire signed [BITWIDTH-1:0] ifmap5  = (active_slot == 0) ? row_buf0[idx_ch0_col4] : (active_slot == 1) ? row_buf1[idx_ch0_col4] : (active_slot == 2) ? row_buf2[idx_ch0_col4] : (active_slot == 3) ? row_buf3[idx_ch0_col4] : row_buf4[idx_ch0_col4];
-    wire signed [BITWIDTH-1:0] ifmap6  = (active_slot == 0) ? row_buf0[idx_ch1_col0] : (active_slot == 1) ? row_buf1[idx_ch1_col0] : (active_slot == 2) ? row_buf2[idx_ch1_col0] : (active_slot == 3) ? row_buf3[idx_ch1_col0] : row_buf4[idx_ch1_col0];
-    wire signed [BITWIDTH-1:0] ifmap7  = (active_slot == 0) ? row_buf0[idx_ch1_col1] : (active_slot == 1) ? row_buf1[idx_ch1_col1] : (active_slot == 2) ? row_buf2[idx_ch1_col1] : (active_slot == 3) ? row_buf3[idx_ch1_col1] : row_buf4[idx_ch1_col1];
-    wire signed [BITWIDTH-1:0] ifmap8  = (active_slot == 0) ? row_buf0[idx_ch1_col2] : (active_slot == 1) ? row_buf1[idx_ch1_col2] : (active_slot == 2) ? row_buf2[idx_ch1_col2] : (active_slot == 3) ? row_buf3[idx_ch1_col2] : row_buf4[idx_ch1_col2];
-    wire signed [BITWIDTH-1:0] ifmap9  = (active_slot == 0) ? row_buf0[idx_ch1_col3] : (active_slot == 1) ? row_buf1[idx_ch1_col3] : (active_slot == 2) ? row_buf2[idx_ch1_col3] : (active_slot == 3) ? row_buf3[idx_ch1_col3] : row_buf4[idx_ch1_col3];
-    wire signed [BITWIDTH-1:0] ifmap10 = (active_slot == 0) ? row_buf0[idx_ch1_col4] : (active_slot == 1) ? row_buf1[idx_ch1_col4] : (active_slot == 2) ? row_buf2[idx_ch1_col4] : (active_slot == 3) ? row_buf3[idx_ch1_col4] : row_buf4[idx_ch1_col4];
-    wire signed [BITWIDTH-1:0] ifmap11 = (active_slot == 0) ? row_buf0[idx_ch2_col0] : (active_slot == 1) ? row_buf1[idx_ch2_col0] : (active_slot == 2) ? row_buf2[idx_ch2_col0] : (active_slot == 3) ? row_buf3[idx_ch2_col0] : row_buf4[idx_ch2_col0];
-    wire signed [BITWIDTH-1:0] ifmap12 = (active_slot == 0) ? row_buf0[idx_ch2_col1] : (active_slot == 1) ? row_buf1[idx_ch2_col1] : (active_slot == 2) ? row_buf2[idx_ch2_col1] : (active_slot == 3) ? row_buf3[idx_ch2_col1] : row_buf4[idx_ch2_col1];
-    wire signed [BITWIDTH-1:0] ifmap13 = (active_slot == 0) ? row_buf0[idx_ch2_col2] : (active_slot == 1) ? row_buf1[idx_ch2_col2] : (active_slot == 2) ? row_buf2[idx_ch2_col2] : (active_slot == 3) ? row_buf3[idx_ch2_col2] : row_buf4[idx_ch2_col2];
-    wire signed [BITWIDTH-1:0] ifmap14 = (active_slot == 0) ? row_buf0[idx_ch2_col3] : (active_slot == 1) ? row_buf1[idx_ch2_col3] : (active_slot == 2) ? row_buf2[idx_ch2_col3] : (active_slot == 3) ? row_buf3[idx_ch2_col3] : row_buf4[idx_ch2_col3];
-    wire signed [BITWIDTH-1:0] ifmap15 = (active_slot == 0) ? row_buf0[idx_ch2_col4] : (active_slot == 1) ? row_buf1[idx_ch2_col4] : (active_slot == 2) ? row_buf2[idx_ch2_col4] : (active_slot == 3) ? row_buf3[idx_ch2_col4] : row_buf4[idx_ch2_col4];
-
     wire [6:0] filter_base = cur_kernel_row * FILTER_WIDTH;
-    wire signed [BITWIDTH-1:0] filter1  = filter_buf[filter_base + 0];
-    wire signed [BITWIDTH-1:0] filter2  = filter_buf[filter_base + 1];
-    wire signed [BITWIDTH-1:0] filter3  = filter_buf[filter_base + 2];
-    wire signed [BITWIDTH-1:0] filter4  = filter_buf[filter_base + 3];
-    wire signed [BITWIDTH-1:0] filter5  = filter_buf[filter_base + 4];
-    wire signed [BITWIDTH-1:0] filter6  = filter_buf[25 + filter_base + 0];
-    wire signed [BITWIDTH-1:0] filter7  = filter_buf[25 + filter_base + 1];
-    wire signed [BITWIDTH-1:0] filter8  = filter_buf[25 + filter_base + 2];
-    wire signed [BITWIDTH-1:0] filter9  = filter_buf[25 + filter_base + 3];
-    wire signed [BITWIDTH-1:0] filter10 = filter_buf[25 + filter_base + 4];
-    wire signed [BITWIDTH-1:0] filter11 = filter_buf[50 + filter_base + 0];
-    wire signed [BITWIDTH-1:0] filter12 = filter_buf[50 + filter_base + 1];
-    wire signed [BITWIDTH-1:0] filter13 = filter_buf[50 + filter_base + 2];
-    wire signed [BITWIDTH-1:0] filter14 = filter_buf[50 + filter_base + 3];
-    wire signed [BITWIDTH-1:0] filter15 = filter_buf[50 + filter_base + 4];
-
     wire signed [2*BITWIDTH-1:0] mac_result;
 
     assign IMAGE_RAM_EN = (cur_state == ISSUE_IMAGE);
@@ -133,42 +171,18 @@ module Convolver
     assign FEATURE_RAM_DOUT = psum[cur_write_idx];
     assign eoc = (cur_state == DONE);
 
-    MAC #(
-        .DATA_BW(BITWIDTH)
-    ) u_MAC (
-        .CLK(clk),
-        .RSTN(resetn),
-        .EN(cur_state == COMPUTE),
-        .IFMAP_DATA_IN1(ifmap1),
-        .IFMAP_DATA_IN2(ifmap2),
-        .IFMAP_DATA_IN3(ifmap3),
-        .IFMAP_DATA_IN4(ifmap4),
-        .IFMAP_DATA_IN5(ifmap5),
-        .IFMAP_DATA_IN6(ifmap6),
-        .IFMAP_DATA_IN7(ifmap7),
-        .IFMAP_DATA_IN8(ifmap8),
-        .IFMAP_DATA_IN9(ifmap9),
-        .IFMAP_DATA_IN10(ifmap10),
-        .IFMAP_DATA_IN11(ifmap11),
-        .IFMAP_DATA_IN12(ifmap12),
-        .IFMAP_DATA_IN13(ifmap13),
-        .IFMAP_DATA_IN14(ifmap14),
-        .IFMAP_DATA_IN15(ifmap15),
-        .FILTER_DATA_IN1(filter1),
-        .FILTER_DATA_IN2(filter2),
-        .FILTER_DATA_IN3(filter3),
-        .FILTER_DATA_IN4(filter4),
-        .FILTER_DATA_IN5(filter5),
-        .FILTER_DATA_IN6(filter6),
-        .FILTER_DATA_IN7(filter7),
-        .FILTER_DATA_IN8(filter8),
-        .FILTER_DATA_IN9(filter9),
-        .FILTER_DATA_IN10(filter10),
-        .FILTER_DATA_IN11(filter11),
-        .FILTER_DATA_IN12(filter12),
-        .FILTER_DATA_IN13(filter13),
-        .FILTER_DATA_IN14(filter14),
-        .FILTER_DATA_IN15(filter15),
+    MAC #(.DATA_BW(BITWIDTH)) u_MAC (
+        .CLK(clk), .RSTN(resetn), .EN(cur_state == COMPUTE),
+        .IFMAP_DATA_IN1(ifmap_pipe1), .IFMAP_DATA_IN2(ifmap_pipe2), .IFMAP_DATA_IN3(ifmap_pipe3),
+        .IFMAP_DATA_IN4(ifmap_pipe4), .IFMAP_DATA_IN5(ifmap_pipe5), .IFMAP_DATA_IN6(ifmap_pipe6),
+        .IFMAP_DATA_IN7(ifmap_pipe7), .IFMAP_DATA_IN8(ifmap_pipe8), .IFMAP_DATA_IN9(ifmap_pipe9),
+        .IFMAP_DATA_IN10(ifmap_pipe10), .IFMAP_DATA_IN11(ifmap_pipe11), .IFMAP_DATA_IN12(ifmap_pipe12),
+        .IFMAP_DATA_IN13(ifmap_pipe13), .IFMAP_DATA_IN14(ifmap_pipe14), .IFMAP_DATA_IN15(ifmap_pipe15),
+        .FILTER_DATA_IN1(filter_pipe1), .FILTER_DATA_IN2(filter_pipe2), .FILTER_DATA_IN3(filter_pipe3),
+        .FILTER_DATA_IN4(filter_pipe4), .FILTER_DATA_IN5(filter_pipe5), .FILTER_DATA_IN6(filter_pipe6),
+        .FILTER_DATA_IN7(filter_pipe7), .FILTER_DATA_IN8(filter_pipe8), .FILTER_DATA_IN9(filter_pipe9),
+        .FILTER_DATA_IN10(filter_pipe10), .FILTER_DATA_IN11(filter_pipe11), .FILTER_DATA_IN12(filter_pipe12),
+        .FILTER_DATA_IN13(filter_pipe13), .FILTER_DATA_IN14(filter_pipe14), .FILTER_DATA_IN15(filter_pipe15),
         .MUL_DATA_OUT(mac_result)
     );
 
@@ -178,6 +192,8 @@ module Convolver
             cur_filter_idx <= 0;
             cur_load_row <= 0;
             cur_load_idx <= 0;
+            cur_load_fx <= 0;
+            cur_load_col_mod <= 0;
             cur_feature_y <= 0;
             cur_compute_x <= 0;
             cur_kernel_row <= 0;
@@ -189,6 +205,8 @@ module Convolver
             cur_filter_idx <= next_filter_idx;
             cur_load_row <= next_load_row;
             cur_load_idx <= next_load_idx;
+            cur_load_fx <= next_load_fx;
+            cur_load_col_mod <= next_load_col_mod;
             cur_feature_y <= next_feature_y;
             cur_compute_x <= next_compute_x;
             cur_kernel_row <= next_kernel_row;
@@ -197,19 +215,29 @@ module Convolver
         end
     end
 
-    always @ (negedge clk or negedge resetn) begin
+    always @ (posedge clk or negedge resetn) begin
         if(!resetn) begin
         end
-        else if((cur_state == WAIT_FILTER || cur_state == STORE_FILTER) && FILTER_RAM_DATA_VAL) begin
+        else if((cur_state == WAIT_FILTER) && FILTER_RAM_DATA_VAL) begin
             filter_buf[cur_filter_idx] <= FILTER_RAM_DIN;
         end
-        else if((cur_state == WAIT_IMAGE || cur_state == STORE_IMAGE) && IMAGE_RAM_DATA_VAL) begin
-            case(load_slot)
-                3'd0: row_buf0[cur_load_idx] <= IMAGE_RAM_DIN;
-                3'd1: row_buf1[cur_load_idx] <= IMAGE_RAM_DIN;
-                3'd2: row_buf2[cur_load_idx] <= IMAGE_RAM_DIN;
-                3'd3: row_buf3[cur_load_idx] <= IMAGE_RAM_DIN;
-                3'd4: row_buf4[cur_load_idx] <= IMAGE_RAM_DIN;
+        else if((cur_state == WAIT_IMAGE) && IMAGE_RAM_DATA_VAL) begin
+            case({load_slot, load_channel})
+                5'b00000: `STORE_WIN(win0_ch0_0, win0_ch0_1, win0_ch0_2, win0_ch0_3, win0_ch0_4)
+                5'b00001: `STORE_WIN(win0_ch1_0, win0_ch1_1, win0_ch1_2, win0_ch1_3, win0_ch1_4)
+                5'b00010: `STORE_WIN(win0_ch2_0, win0_ch2_1, win0_ch2_2, win0_ch2_3, win0_ch2_4)
+                5'b00100: `STORE_WIN(win1_ch0_0, win1_ch0_1, win1_ch0_2, win1_ch0_3, win1_ch0_4)
+                5'b00101: `STORE_WIN(win1_ch1_0, win1_ch1_1, win1_ch1_2, win1_ch1_3, win1_ch1_4)
+                5'b00110: `STORE_WIN(win1_ch2_0, win1_ch2_1, win1_ch2_2, win1_ch2_3, win1_ch2_4)
+                5'b01000: `STORE_WIN(win2_ch0_0, win2_ch0_1, win2_ch0_2, win2_ch0_3, win2_ch0_4)
+                5'b01001: `STORE_WIN(win2_ch1_0, win2_ch1_1, win2_ch1_2, win2_ch1_3, win2_ch1_4)
+                5'b01010: `STORE_WIN(win2_ch2_0, win2_ch2_1, win2_ch2_2, win2_ch2_3, win2_ch2_4)
+                5'b01100: `STORE_WIN(win3_ch0_0, win3_ch0_1, win3_ch0_2, win3_ch0_3, win3_ch0_4)
+                5'b01101: `STORE_WIN(win3_ch1_0, win3_ch1_1, win3_ch1_2, win3_ch1_3, win3_ch1_4)
+                5'b01110: `STORE_WIN(win3_ch2_0, win3_ch2_1, win3_ch2_2, win3_ch2_3, win3_ch2_4)
+                5'b10000: `STORE_WIN(win4_ch0_0, win4_ch0_1, win4_ch0_2, win4_ch0_3, win4_ch0_4)
+                5'b10001: `STORE_WIN(win4_ch1_0, win4_ch1_1, win4_ch1_2, win4_ch1_3, win4_ch1_4)
+                5'b10010: `STORE_WIN(win4_ch2_0, win4_ch2_1, win4_ch2_2, win4_ch2_3, win4_ch2_4)
             endcase
         end
     end
@@ -218,10 +246,36 @@ module Convolver
         if(!resetn) begin
         end
         else begin
-            if(cur_state == CLEAR_PSUM)
+            if(cur_state == CLEAR_PSUM) begin
                 psum[cur_clear_idx] <= 0;
-            else if(cur_state == COMPUTE)
+            end
+            else if(cur_state == READ_SLOT) begin
+                case(active_slot)
+                    3'd0: `CAPTURE_SLOT(win0_ch0_0, win0_ch0_1, win0_ch0_2, win0_ch0_3, win0_ch0_4, win0_ch1_0, win0_ch1_1, win0_ch1_2, win0_ch1_3, win0_ch1_4, win0_ch2_0, win0_ch2_1, win0_ch2_2, win0_ch2_3, win0_ch2_4)
+                    3'd1: `CAPTURE_SLOT(win1_ch0_0, win1_ch0_1, win1_ch0_2, win1_ch0_3, win1_ch0_4, win1_ch1_0, win1_ch1_1, win1_ch1_2, win1_ch1_3, win1_ch1_4, win1_ch2_0, win1_ch2_1, win1_ch2_2, win1_ch2_3, win1_ch2_4)
+                    3'd2: `CAPTURE_SLOT(win2_ch0_0, win2_ch0_1, win2_ch0_2, win2_ch0_3, win2_ch0_4, win2_ch1_0, win2_ch1_1, win2_ch1_2, win2_ch1_3, win2_ch1_4, win2_ch2_0, win2_ch2_1, win2_ch2_2, win2_ch2_3, win2_ch2_4)
+                    3'd3: `CAPTURE_SLOT(win3_ch0_0, win3_ch0_1, win3_ch0_2, win3_ch0_3, win3_ch0_4, win3_ch1_0, win3_ch1_1, win3_ch1_2, win3_ch1_3, win3_ch1_4, win3_ch2_0, win3_ch2_1, win3_ch2_2, win3_ch2_3, win3_ch2_4)
+                    3'd4: `CAPTURE_SLOT(win4_ch0_0, win4_ch0_1, win4_ch0_2, win4_ch0_3, win4_ch0_4, win4_ch1_0, win4_ch1_1, win4_ch1_2, win4_ch1_3, win4_ch1_4, win4_ch2_0, win4_ch2_1, win4_ch2_2, win4_ch2_3, win4_ch2_4)
+                endcase
+                filter_pipe1  <= filter_buf[filter_base + 0];
+                filter_pipe2  <= filter_buf[filter_base + 1];
+                filter_pipe3  <= filter_buf[filter_base + 2];
+                filter_pipe4  <= filter_buf[filter_base + 3];
+                filter_pipe5  <= filter_buf[filter_base + 4];
+                filter_pipe6  <= filter_buf[25 + filter_base + 0];
+                filter_pipe7  <= filter_buf[25 + filter_base + 1];
+                filter_pipe8  <= filter_buf[25 + filter_base + 2];
+                filter_pipe9  <= filter_buf[25 + filter_base + 3];
+                filter_pipe10 <= filter_buf[25 + filter_base + 4];
+                filter_pipe11 <= filter_buf[50 + filter_base + 0];
+                filter_pipe12 <= filter_buf[50 + filter_base + 1];
+                filter_pipe13 <= filter_buf[50 + filter_base + 2];
+                filter_pipe14 <= filter_buf[50 + filter_base + 3];
+                filter_pipe15 <= filter_buf[50 + filter_base + 4];
+            end
+            else if(cur_state == ACCUMULATE) begin
                 psum[cur_compute_x] <= psum[cur_compute_x] + mac_result;
+            end
         end
     end
 
@@ -230,6 +284,8 @@ module Convolver
         next_filter_idx = cur_filter_idx;
         next_load_row = cur_load_row;
         next_load_idx = cur_load_idx;
+        next_load_fx = cur_load_fx;
+        next_load_col_mod = cur_load_col_mod;
         next_feature_y = cur_feature_y;
         next_compute_x = cur_compute_x;
         next_kernel_row = cur_kernel_row;
@@ -242,6 +298,8 @@ module Convolver
                 next_filter_idx = 0;
                 next_load_row = 0;
                 next_load_idx = 0;
+                next_load_fx = 0;
+                next_load_col_mod = 0;
                 next_feature_y = 0;
                 next_compute_x = 0;
                 next_kernel_row = 0;
@@ -260,6 +318,8 @@ module Convolver
                     next_state = ISSUE_IMAGE;
                     next_load_row = 0;
                     next_load_idx = 0;
+                    next_load_fx = 0;
+                    next_load_col_mod = 0;
                 end
                 else begin
                     next_filter_idx = cur_filter_idx + 1;
@@ -276,6 +336,8 @@ module Convolver
             STORE_IMAGE: begin
                 if(cur_load_idx == 3*IMAGE_WIDTH-1) begin
                     next_load_idx = 0;
+                    next_load_fx = 0;
+                    next_load_col_mod = 0;
                     if((cur_feature_y == 0 && cur_load_row == 4) ||
                        (cur_feature_y != 0 && cur_load_row == cur_feature_y*3 + 4)) begin
                         next_state = CLEAR_PSUM;
@@ -288,12 +350,23 @@ module Convolver
                 end
                 else begin
                     next_load_idx = cur_load_idx + 1;
+                    if(load_col == IMAGE_WIDTH-1) begin
+                        next_load_fx = 0;
+                        next_load_col_mod = 0;
+                    end
+                    else if(cur_load_col_mod == 2) begin
+                        next_load_fx = cur_load_fx + 1;
+                        next_load_col_mod = 0;
+                    end
+                    else begin
+                        next_load_col_mod = cur_load_col_mod + 1;
+                    end
                     next_state = ISSUE_IMAGE;
                 end
             end
             CLEAR_PSUM: begin
                 if(cur_clear_idx == FEATURE_WIDTH-1) begin
-                    next_state = COMPUTE;
+                    next_state = READ_SLOT;
                     next_compute_x = 0;
                     next_kernel_row = 0;
                 end
@@ -301,7 +374,13 @@ module Convolver
                     next_clear_idx = cur_clear_idx + 1;
                 end
             end
+            READ_SLOT: begin
+                next_state = COMPUTE;
+            end
             COMPUTE: begin
+                next_state = ACCUMULATE;
+            end
+            ACCUMULATE: begin
                 if(cur_kernel_row == 4) begin
                     next_kernel_row = 0;
                     if(cur_compute_x == FEATURE_WIDTH-1) begin
@@ -311,10 +390,12 @@ module Convolver
                     end
                     else begin
                         next_compute_x = cur_compute_x + 1;
+                        next_state = READ_SLOT;
                     end
                 end
                 else begin
                     next_kernel_row = cur_kernel_row + 1;
+                    next_state = READ_SLOT;
                 end
             end
             WRITE_FEATURE: begin
@@ -326,6 +407,8 @@ module Convolver
                         next_feature_y = cur_feature_y + 1;
                         next_load_row = (cur_feature_y + 1) * 3 + 2;
                         next_load_idx = 0;
+                        next_load_fx = 0;
+                        next_load_col_mod = 0;
                         next_state = ISSUE_IMAGE;
                     end
                 end

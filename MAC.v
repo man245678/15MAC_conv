@@ -41,24 +41,61 @@ module MAC
     output signed [2*DATA_BW-1:0] MUL_DATA_OUT
 );
 
-wire signed [2*DATA_BW-1:0] mul1  = IFMAP_DATA_IN1  * FILTER_DATA_IN1;
-wire signed [2*DATA_BW-1:0] mul2  = IFMAP_DATA_IN2  * FILTER_DATA_IN2;
-wire signed [2*DATA_BW-1:0] mul3  = IFMAP_DATA_IN3  * FILTER_DATA_IN3;
-wire signed [2*DATA_BW-1:0] mul4  = IFMAP_DATA_IN4  * FILTER_DATA_IN4;
-wire signed [2*DATA_BW-1:0] mul5  = IFMAP_DATA_IN5  * FILTER_DATA_IN5;
-wire signed [2*DATA_BW-1:0] mul6  = IFMAP_DATA_IN6  * FILTER_DATA_IN6;
-wire signed [2*DATA_BW-1:0] mul7  = IFMAP_DATA_IN7  * FILTER_DATA_IN7;
-wire signed [2*DATA_BW-1:0] mul8  = IFMAP_DATA_IN8  * FILTER_DATA_IN8;
-wire signed [2*DATA_BW-1:0] mul9  = IFMAP_DATA_IN9  * FILTER_DATA_IN9;
-wire signed [2*DATA_BW-1:0] mul10 = IFMAP_DATA_IN10 * FILTER_DATA_IN10;
-wire signed [2*DATA_BW-1:0] mul11 = IFMAP_DATA_IN11 * FILTER_DATA_IN11;
-wire signed [2*DATA_BW-1:0] mul12 = IFMAP_DATA_IN12 * FILTER_DATA_IN12;
-wire signed [2*DATA_BW-1:0] mul13 = IFMAP_DATA_IN13 * FILTER_DATA_IN13;
-wire signed [2*DATA_BW-1:0] mul14 = IFMAP_DATA_IN14 * FILTER_DATA_IN14;
-wire signed [2*DATA_BW-1:0] mul15 = IFMAP_DATA_IN15 * FILTER_DATA_IN15;
+reg signed [2*DATA_BW-1:0] mul1;
+reg signed [2*DATA_BW-1:0] mul2;
+reg signed [2*DATA_BW-1:0] mul3;
+reg signed [2*DATA_BW-1:0] mul4;
+reg signed [2*DATA_BW-1:0] mul5;
+reg signed [2*DATA_BW-1:0] mul6;
+reg signed [2*DATA_BW-1:0] mul7;
+reg signed [2*DATA_BW-1:0] mul8;
+reg signed [2*DATA_BW-1:0] mul9;
+reg signed [2*DATA_BW-1:0] mul10;
+reg signed [2*DATA_BW-1:0] mul11;
+reg signed [2*DATA_BW-1:0] mul12;
+reg signed [2*DATA_BW-1:0] mul13;
+reg signed [2*DATA_BW-1:0] mul14;
+reg signed [2*DATA_BW-1:0] mul15;
 
-assign MUL_DATA_OUT = EN ? (mul1 + mul2 + mul3 + mul4 + mul5 +
-                            mul6 + mul7 + mul8 + mul9 + mul10 +
-                            mul11 + mul12 + mul13 + mul14 + mul15) : 0;
+assign MUL_DATA_OUT = mul1 + mul2 + mul3 + mul4 + mul5 +
+                      mul6 + mul7 + mul8 + mul9 + mul10 +
+                      mul11 + mul12 + mul13 + mul14 + mul15;
+
+always @(posedge CLK or negedge RSTN) begin
+    if(!RSTN) begin
+        mul1 <= 0;
+        mul2 <= 0;
+        mul3 <= 0;
+        mul4 <= 0;
+        mul5 <= 0;
+        mul6 <= 0;
+        mul7 <= 0;
+        mul8 <= 0;
+        mul9 <= 0;
+        mul10 <= 0;
+        mul11 <= 0;
+        mul12 <= 0;
+        mul13 <= 0;
+        mul14 <= 0;
+        mul15 <= 0;
+    end
+    else if(EN) begin
+        mul1 <= IFMAP_DATA_IN1 * FILTER_DATA_IN1;
+        mul2 <= IFMAP_DATA_IN2 * FILTER_DATA_IN2;
+        mul3 <= IFMAP_DATA_IN3 * FILTER_DATA_IN3;
+        mul4 <= IFMAP_DATA_IN4 * FILTER_DATA_IN4;
+        mul5 <= IFMAP_DATA_IN5 * FILTER_DATA_IN5;
+        mul6 <= IFMAP_DATA_IN6 * FILTER_DATA_IN6;
+        mul7 <= IFMAP_DATA_IN7 * FILTER_DATA_IN7;
+        mul8 <= IFMAP_DATA_IN8 * FILTER_DATA_IN8;
+        mul9 <= IFMAP_DATA_IN9 * FILTER_DATA_IN9;
+        mul10 <= IFMAP_DATA_IN10 * FILTER_DATA_IN10;
+        mul11 <= IFMAP_DATA_IN11 * FILTER_DATA_IN11;
+        mul12 <= IFMAP_DATA_IN12 * FILTER_DATA_IN12;
+        mul13 <= IFMAP_DATA_IN13 * FILTER_DATA_IN13;
+        mul14 <= IFMAP_DATA_IN14 * FILTER_DATA_IN14;
+        mul15 <= IFMAP_DATA_IN15 * FILTER_DATA_IN15;
+    end
+end
 
 endmodule
