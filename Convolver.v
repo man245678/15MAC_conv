@@ -22,21 +22,28 @@
 end
 
 `define CAPTURE_SLOT(A00,A01,A02,A03,A04,A10,A11,A12,A13,A14,A20,A21,A22,A23,A24) begin \
-    ifmap_pipe1  <= A00[cur_compute_x]; \
-    ifmap_pipe2  <= A01[cur_compute_x]; \
-    ifmap_pipe3  <= A02[cur_compute_x]; \
-    ifmap_pipe4  <= A03[cur_compute_x]; \
-    ifmap_pipe5  <= A04[cur_compute_x]; \
-    ifmap_pipe6  <= A10[cur_compute_x]; \
-    ifmap_pipe7  <= A11[cur_compute_x]; \
-    ifmap_pipe8  <= A12[cur_compute_x]; \
-    ifmap_pipe9  <= A13[cur_compute_x]; \
-    ifmap_pipe10 <= A14[cur_compute_x]; \
-    ifmap_pipe11 <= A20[cur_compute_x]; \
-    ifmap_pipe12 <= A21[cur_compute_x]; \
-    ifmap_pipe13 <= A22[cur_compute_x]; \
-    ifmap_pipe14 <= A23[cur_compute_x]; \
-    ifmap_pipe15 <= A24[cur_compute_x]; \
+    case(compute_bank) \
+        2'd0: begin \
+            ifmap_pipe1 <= A00[compute_idx0]; ifmap_pipe2 <= A01[compute_idx0]; ifmap_pipe3 <= A02[compute_idx0]; ifmap_pipe4 <= A03[compute_idx0]; ifmap_pipe5 <= A04[compute_idx0]; \
+            ifmap_pipe6 <= A10[compute_idx0]; ifmap_pipe7 <= A11[compute_idx0]; ifmap_pipe8 <= A12[compute_idx0]; ifmap_pipe9 <= A13[compute_idx0]; ifmap_pipe10 <= A14[compute_idx0]; \
+            ifmap_pipe11 <= A20[compute_idx0]; ifmap_pipe12 <= A21[compute_idx0]; ifmap_pipe13 <= A22[compute_idx0]; ifmap_pipe14 <= A23[compute_idx0]; ifmap_pipe15 <= A24[compute_idx0]; \
+        end \
+        2'd1: begin \
+            ifmap_pipe1 <= A00[compute_idx1]; ifmap_pipe2 <= A01[compute_idx1]; ifmap_pipe3 <= A02[compute_idx1]; ifmap_pipe4 <= A03[compute_idx1]; ifmap_pipe5 <= A04[compute_idx1]; \
+            ifmap_pipe6 <= A10[compute_idx1]; ifmap_pipe7 <= A11[compute_idx1]; ifmap_pipe8 <= A12[compute_idx1]; ifmap_pipe9 <= A13[compute_idx1]; ifmap_pipe10 <= A14[compute_idx1]; \
+            ifmap_pipe11 <= A20[compute_idx1]; ifmap_pipe12 <= A21[compute_idx1]; ifmap_pipe13 <= A22[compute_idx1]; ifmap_pipe14 <= A23[compute_idx1]; ifmap_pipe15 <= A24[compute_idx1]; \
+        end \
+        2'd2: begin \
+            ifmap_pipe1 <= A00[compute_idx2]; ifmap_pipe2 <= A01[compute_idx2]; ifmap_pipe3 <= A02[compute_idx2]; ifmap_pipe4 <= A03[compute_idx2]; ifmap_pipe5 <= A04[compute_idx2]; \
+            ifmap_pipe6 <= A10[compute_idx2]; ifmap_pipe7 <= A11[compute_idx2]; ifmap_pipe8 <= A12[compute_idx2]; ifmap_pipe9 <= A13[compute_idx2]; ifmap_pipe10 <= A14[compute_idx2]; \
+            ifmap_pipe11 <= A20[compute_idx2]; ifmap_pipe12 <= A21[compute_idx2]; ifmap_pipe13 <= A22[compute_idx2]; ifmap_pipe14 <= A23[compute_idx2]; ifmap_pipe15 <= A24[compute_idx2]; \
+        end \
+        default: begin \
+            ifmap_pipe1 <= A00[compute_idx3]; ifmap_pipe2 <= A01[compute_idx3]; ifmap_pipe3 <= A02[compute_idx3]; ifmap_pipe4 <= A03[compute_idx3]; ifmap_pipe5 <= A04[compute_idx3]; \
+            ifmap_pipe6 <= A10[compute_idx3]; ifmap_pipe7 <= A11[compute_idx3]; ifmap_pipe8 <= A12[compute_idx3]; ifmap_pipe9 <= A13[compute_idx3]; ifmap_pipe10 <= A14[compute_idx3]; \
+            ifmap_pipe11 <= A20[compute_idx3]; ifmap_pipe12 <= A21[compute_idx3]; ifmap_pipe13 <= A22[compute_idx3]; ifmap_pipe14 <= A23[compute_idx3]; ifmap_pipe15 <= A24[compute_idx3]; \
+        end \
+    endcase \
 end
 
 module Convolver
@@ -159,6 +166,11 @@ module Convolver
     wire [2:0] load_slot = cur_load_row % 5;
     wire [6:0] active_abs_row = cur_feature_y * 3 + cur_kernel_row;
     wire [2:0] active_slot = active_abs_row % 5;
+    wire [1:0] compute_bank = cur_compute_x[4:3];
+    wire [4:0] compute_idx0 = {2'b00, cur_compute_x[2:0]};
+    wire [4:0] compute_idx1 = {2'b01, cur_compute_x[2:0]};
+    wire [4:0] compute_idx2 = {2'b10, cur_compute_x[2:0]};
+    wire [4:0] compute_idx3 = {2'b11, cur_compute_x[2:0]};
     wire [6:0] filter_base = cur_kernel_row * FILTER_WIDTH;
     wire signed [2*BITWIDTH-1:0] mac_result;
 
