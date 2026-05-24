@@ -21,28 +21,19 @@
     endcase \
 end
 
-`define CAPTURE_SLOT(A00,A01,A02,A03,A04,A10,A11,A12,A13,A14,A20,A21,A22,A23,A24) begin \
-    case(compute_bank) \
-        2'd0: begin \
-            ifmap_pipe1 <= A00[compute_idx0]; ifmap_pipe2 <= A01[compute_idx0]; ifmap_pipe3 <= A02[compute_idx0]; ifmap_pipe4 <= A03[compute_idx0]; ifmap_pipe5 <= A04[compute_idx0]; \
-            ifmap_pipe6 <= A10[compute_idx0]; ifmap_pipe7 <= A11[compute_idx0]; ifmap_pipe8 <= A12[compute_idx0]; ifmap_pipe9 <= A13[compute_idx0]; ifmap_pipe10 <= A14[compute_idx0]; \
-            ifmap_pipe11 <= A20[compute_idx0]; ifmap_pipe12 <= A21[compute_idx0]; ifmap_pipe13 <= A22[compute_idx0]; ifmap_pipe14 <= A23[compute_idx0]; ifmap_pipe15 <= A24[compute_idx0]; \
-        end \
-        2'd1: begin \
-            ifmap_pipe1 <= A00[compute_idx1]; ifmap_pipe2 <= A01[compute_idx1]; ifmap_pipe3 <= A02[compute_idx1]; ifmap_pipe4 <= A03[compute_idx1]; ifmap_pipe5 <= A04[compute_idx1]; \
-            ifmap_pipe6 <= A10[compute_idx1]; ifmap_pipe7 <= A11[compute_idx1]; ifmap_pipe8 <= A12[compute_idx1]; ifmap_pipe9 <= A13[compute_idx1]; ifmap_pipe10 <= A14[compute_idx1]; \
-            ifmap_pipe11 <= A20[compute_idx1]; ifmap_pipe12 <= A21[compute_idx1]; ifmap_pipe13 <= A22[compute_idx1]; ifmap_pipe14 <= A23[compute_idx1]; ifmap_pipe15 <= A24[compute_idx1]; \
-        end \
-        2'd2: begin \
-            ifmap_pipe1 <= A00[compute_idx2]; ifmap_pipe2 <= A01[compute_idx2]; ifmap_pipe3 <= A02[compute_idx2]; ifmap_pipe4 <= A03[compute_idx2]; ifmap_pipe5 <= A04[compute_idx2]; \
-            ifmap_pipe6 <= A10[compute_idx2]; ifmap_pipe7 <= A11[compute_idx2]; ifmap_pipe8 <= A12[compute_idx2]; ifmap_pipe9 <= A13[compute_idx2]; ifmap_pipe10 <= A14[compute_idx2]; \
-            ifmap_pipe11 <= A20[compute_idx2]; ifmap_pipe12 <= A21[compute_idx2]; ifmap_pipe13 <= A22[compute_idx2]; ifmap_pipe14 <= A23[compute_idx2]; ifmap_pipe15 <= A24[compute_idx2]; \
-        end \
-        default: begin \
-            ifmap_pipe1 <= A00[compute_idx3]; ifmap_pipe2 <= A01[compute_idx3]; ifmap_pipe3 <= A02[compute_idx3]; ifmap_pipe4 <= A03[compute_idx3]; ifmap_pipe5 <= A04[compute_idx3]; \
-            ifmap_pipe6 <= A10[compute_idx3]; ifmap_pipe7 <= A11[compute_idx3]; ifmap_pipe8 <= A12[compute_idx3]; ifmap_pipe9 <= A13[compute_idx3]; ifmap_pipe10 <= A14[compute_idx3]; \
-            ifmap_pipe11 <= A20[compute_idx3]; ifmap_pipe12 <= A21[compute_idx3]; ifmap_pipe13 <= A22[compute_idx3]; ifmap_pipe14 <= A23[compute_idx3]; ifmap_pipe15 <= A24[compute_idx3]; \
-        end \
+`define CAPTURE_SLOT(A00,A01,A02,A03,A04,A10,A11,A12,A13,A14,A20,A21,A22,A23,A24,IDX) begin \
+    ifmap_pipe1 <= A00[IDX]; ifmap_pipe2 <= A01[IDX]; ifmap_pipe3 <= A02[IDX]; ifmap_pipe4 <= A03[IDX]; ifmap_pipe5 <= A04[IDX]; \
+    ifmap_pipe6 <= A10[IDX]; ifmap_pipe7 <= A11[IDX]; ifmap_pipe8 <= A12[IDX]; ifmap_pipe9 <= A13[IDX]; ifmap_pipe10 <= A14[IDX]; \
+    ifmap_pipe11 <= A20[IDX]; ifmap_pipe12 <= A21[IDX]; ifmap_pipe13 <= A22[IDX]; ifmap_pipe14 <= A23[IDX]; ifmap_pipe15 <= A24[IDX]; \
+end
+
+`define CAPTURE_ACTIVE(IDX) begin \
+    case(active_slot) \
+        3'd0: `CAPTURE_SLOT(win0_ch0_0, win0_ch0_1, win0_ch0_2, win0_ch0_3, win0_ch0_4, win0_ch1_0, win0_ch1_1, win0_ch1_2, win0_ch1_3, win0_ch1_4, win0_ch2_0, win0_ch2_1, win0_ch2_2, win0_ch2_3, win0_ch2_4, IDX) \
+        3'd1: `CAPTURE_SLOT(win1_ch0_0, win1_ch0_1, win1_ch0_2, win1_ch0_3, win1_ch0_4, win1_ch1_0, win1_ch1_1, win1_ch1_2, win1_ch1_3, win1_ch1_4, win1_ch2_0, win1_ch2_1, win1_ch2_2, win1_ch2_3, win1_ch2_4, IDX) \
+        3'd2: `CAPTURE_SLOT(win2_ch0_0, win2_ch0_1, win2_ch0_2, win2_ch0_3, win2_ch0_4, win2_ch1_0, win2_ch1_1, win2_ch1_2, win2_ch1_3, win2_ch1_4, win2_ch2_0, win2_ch2_1, win2_ch2_2, win2_ch2_3, win2_ch2_4, IDX) \
+        3'd3: `CAPTURE_SLOT(win3_ch0_0, win3_ch0_1, win3_ch0_2, win3_ch0_3, win3_ch0_4, win3_ch1_0, win3_ch1_1, win3_ch1_2, win3_ch1_3, win3_ch1_4, win3_ch2_0, win3_ch2_1, win3_ch2_2, win3_ch2_3, win3_ch2_4, IDX) \
+        3'd4: `CAPTURE_SLOT(win4_ch0_0, win4_ch0_1, win4_ch0_2, win4_ch0_3, win4_ch0_4, win4_ch1_0, win4_ch1_1, win4_ch1_2, win4_ch1_3, win4_ch1_4, win4_ch2_0, win4_ch2_1, win4_ch2_2, win4_ch2_3, win4_ch2_4, IDX) \
     endcase \
 end
 
@@ -76,23 +67,26 @@ module Convolver
     output wire eoc
 );
 
-    localparam IDLE          = 4'd0;
-    localparam ISSUE_FILTER  = 4'd1;
-    localparam WAIT_FILTER   = 4'd2;
-    localparam STORE_FILTER  = 4'd3;
-    localparam ISSUE_IMAGE   = 4'd4;
-    localparam WAIT_IMAGE    = 4'd5;
-    localparam STORE_IMAGE   = 4'd6;
-    localparam CLEAR_PSUM    = 4'd7;
-    localparam READ_SLOT     = 4'd8;
-    localparam COMPUTE       = 4'd9;
-    localparam SUM_PARTIAL   = 4'd10;
-    localparam SUM_FINAL     = 4'd11;
-    localparam ACCUMULATE    = 4'd12;
-    localparam WRITE_FEATURE = 4'd13;
-    localparam DONE          = 4'd14;
+    localparam IDLE          = 5'd0;
+    localparam ISSUE_FILTER  = 5'd1;
+    localparam WAIT_FILTER   = 5'd2;
+    localparam STORE_FILTER  = 5'd3;
+    localparam ISSUE_IMAGE   = 5'd4;
+    localparam WAIT_IMAGE    = 5'd5;
+    localparam STORE_IMAGE   = 5'd6;
+    localparam CLEAR_PSUM    = 5'd7;
+    localparam READ_BANK0    = 5'd8;
+    localparam READ_BANK1    = 5'd9;
+    localparam READ_BANK2    = 5'd10;
+    localparam READ_BANK3    = 5'd11;
+    localparam COMPUTE       = 5'd12;
+    localparam SUM_PARTIAL   = 5'd13;
+    localparam SUM_FINAL     = 5'd14;
+    localparam ACCUMULATE    = 5'd15;
+    localparam WRITE_FEATURE = 5'd16;
+    localparam DONE          = 5'd17;
 
-    reg [3:0] cur_state, next_state;
+    reg [4:0] cur_state, next_state;
     reg [6:0] cur_filter_idx, next_filter_idx;
     reg [6:0] cur_load_row, next_load_row;
     reg [8:0] cur_load_idx, next_load_idx;
@@ -173,6 +167,13 @@ module Convolver
     wire [4:0] compute_idx3 = {2'b11, cur_compute_x[2:0]};
     wire [6:0] filter_base = cur_kernel_row * FILTER_WIDTH;
     wire signed [2*BITWIDTH-1:0] mac_result;
+    wire [4:0] compute_x_plus1 = cur_compute_x + 1;
+    wire [4:0] read_state = (compute_bank == 0) ? READ_BANK0 :
+                            (compute_bank == 1) ? READ_BANK1 :
+                            (compute_bank == 2) ? READ_BANK2 : READ_BANK3;
+    wire [4:0] read_state_next_x = (compute_x_plus1[4:3] == 0) ? READ_BANK0 :
+                                   (compute_x_plus1[4:3] == 1) ? READ_BANK1 :
+                                   (compute_x_plus1[4:3] == 2) ? READ_BANK2 : READ_BANK3;
 
     assign IMAGE_RAM_EN = (cur_state == ISSUE_IMAGE);
     assign FILTER_RAM_EN = (cur_state == ISSUE_FILTER);
@@ -263,14 +264,24 @@ module Convolver
             if(cur_state == CLEAR_PSUM) begin
                 psum[cur_clear_idx] <= 0;
             end
-            else if(cur_state == READ_SLOT) begin
-                case(active_slot)
-                    3'd0: `CAPTURE_SLOT(win0_ch0_0, win0_ch0_1, win0_ch0_2, win0_ch0_3, win0_ch0_4, win0_ch1_0, win0_ch1_1, win0_ch1_2, win0_ch1_3, win0_ch1_4, win0_ch2_0, win0_ch2_1, win0_ch2_2, win0_ch2_3, win0_ch2_4)
-                    3'd1: `CAPTURE_SLOT(win1_ch0_0, win1_ch0_1, win1_ch0_2, win1_ch0_3, win1_ch0_4, win1_ch1_0, win1_ch1_1, win1_ch1_2, win1_ch1_3, win1_ch1_4, win1_ch2_0, win1_ch2_1, win1_ch2_2, win1_ch2_3, win1_ch2_4)
-                    3'd2: `CAPTURE_SLOT(win2_ch0_0, win2_ch0_1, win2_ch0_2, win2_ch0_3, win2_ch0_4, win2_ch1_0, win2_ch1_1, win2_ch1_2, win2_ch1_3, win2_ch1_4, win2_ch2_0, win2_ch2_1, win2_ch2_2, win2_ch2_3, win2_ch2_4)
-                    3'd3: `CAPTURE_SLOT(win3_ch0_0, win3_ch0_1, win3_ch0_2, win3_ch0_3, win3_ch0_4, win3_ch1_0, win3_ch1_1, win3_ch1_2, win3_ch1_3, win3_ch1_4, win3_ch2_0, win3_ch2_1, win3_ch2_2, win3_ch2_3, win3_ch2_4)
-                    3'd4: `CAPTURE_SLOT(win4_ch0_0, win4_ch0_1, win4_ch0_2, win4_ch0_3, win4_ch0_4, win4_ch1_0, win4_ch1_1, win4_ch1_2, win4_ch1_3, win4_ch1_4, win4_ch2_0, win4_ch2_1, win4_ch2_2, win4_ch2_3, win4_ch2_4)
-                endcase
+            else if(cur_state == READ_BANK0) begin
+                `CAPTURE_ACTIVE(compute_idx0)
+            end
+            else if(cur_state == READ_BANK1) begin
+                `CAPTURE_ACTIVE(compute_idx1)
+            end
+            else if(cur_state == READ_BANK2) begin
+                `CAPTURE_ACTIVE(compute_idx2)
+            end
+            else if(cur_state == READ_BANK3) begin
+                `CAPTURE_ACTIVE(compute_idx3)
+            end
+            else if(cur_state == ACCUMULATE) begin
+                psum[cur_compute_x] <= psum[cur_compute_x] + mac_result;
+            end
+
+            if((cur_state == READ_BANK0) || (cur_state == READ_BANK1) ||
+               (cur_state == READ_BANK2) || (cur_state == READ_BANK3)) begin
                 filter_pipe1  <= filter_buf[filter_base + 0];
                 filter_pipe2  <= filter_buf[filter_base + 1];
                 filter_pipe3  <= filter_buf[filter_base + 2];
@@ -286,9 +297,6 @@ module Convolver
                 filter_pipe13 <= filter_buf[50 + filter_base + 2];
                 filter_pipe14 <= filter_buf[50 + filter_base + 3];
                 filter_pipe15 <= filter_buf[50 + filter_base + 4];
-            end
-            else if(cur_state == ACCUMULATE) begin
-                psum[cur_compute_x] <= psum[cur_compute_x] + mac_result;
             end
         end
     end
@@ -380,7 +388,7 @@ module Convolver
             end
             CLEAR_PSUM: begin
                 if(cur_clear_idx == FEATURE_WIDTH-1) begin
-                    next_state = READ_SLOT;
+                    next_state = READ_BANK0;
                     next_compute_x = 0;
                     next_kernel_row = 0;
                 end
@@ -388,7 +396,16 @@ module Convolver
                     next_clear_idx = cur_clear_idx + 1;
                 end
             end
-            READ_SLOT: begin
+            READ_BANK0: begin
+                next_state = COMPUTE;
+            end
+            READ_BANK1: begin
+                next_state = COMPUTE;
+            end
+            READ_BANK2: begin
+                next_state = COMPUTE;
+            end
+            READ_BANK3: begin
                 next_state = COMPUTE;
             end
             COMPUTE: begin
@@ -410,12 +427,12 @@ module Convolver
                     end
                     else begin
                         next_compute_x = cur_compute_x + 1;
-                        next_state = READ_SLOT;
+                        next_state = read_state_next_x;
                     end
                 end
                 else begin
                     next_kernel_row = cur_kernel_row + 1;
-                    next_state = READ_SLOT;
+                    next_state = read_state;
                 end
             end
             WRITE_FEATURE: begin
